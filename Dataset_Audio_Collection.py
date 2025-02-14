@@ -229,8 +229,10 @@ class App:
             self.toggle_record()
 
         self.current_index += 1
+        # Check if we have reached the end of the list of sentences and close the app
         if self.current_index >= len(self.sentences):
-            self.current_index = 0  # or handle it differently if you don't want to loop
+            self.root.destroy()
+            return
 
         self.sentence_label.config(text=self.sentences[self.current_index])
 
