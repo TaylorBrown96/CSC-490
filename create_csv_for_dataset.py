@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-create_csvs_for_dataset.py
+create_csv_for_dataset.py
 
 Scan two directories named "audio" and "transcripts" and generate a CSV file
 matching each audio file to its transcript. The script assumes:
@@ -17,10 +17,10 @@ Default behavior if no arguments are passed:
 
 Usage Examples:
   (1) Rely on defaults:
-      python create_csvs_for_dataset.py
+      python create_csv_for_dataset.py
 
   (2) Override defaults:
-      python create_csvs_for_dataset.py \\
+      python create_csv_for_dataset.py \\
           --audio_dir /path/to/audio \\
           --transcript_dir /path/to/transcripts \\
           --output_csv my_data.csv
