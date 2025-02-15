@@ -2,15 +2,12 @@
 
 ### Home Grown Dataset Collection
 
-#### Install Requirements
-
-`pip install pyaudio`
-
 #### Download the provided code
 
 Place the `Dataset_Audio_Collection.py` file into an empty folder on your desktop.
 
 #### Run the Script
+_If the needed packages are required they will install_
 
 1. Enter your name when prompted.  (**_No spaces. Just your first name._**)
 2. A window will appear showing the current sentence.  
