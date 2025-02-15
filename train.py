@@ -1,3 +1,4 @@
+import importlib.metadata
 # Install required packages if not already installed
 required  = {'transformers', 'datasets', 'librosa', 'accelerate', 'evaluate'}
 installed = {pkg.metadata['Name'] for pkg in importlib.metadata.distributions()}
@@ -12,7 +13,6 @@ import os
 import sys
 import subprocess
 import warnings
-import importlib.metadata
 
 import torch
 import librosa
