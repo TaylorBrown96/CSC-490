@@ -24,7 +24,7 @@ You should also visit these sites to get the latest versions:<br>
 [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit)
 
 > [!TIP]
-> Start a new conda or venv enviroment before installing the required packages. Then install torch first by visiting the website and finally run the pip command above.
+> Start a new conda or venv enviroment before installing the required packages. Then install torch first by visiting the website and finally run the pip command above.<br><br>All the packages listed in the requirements folder where generated from a pip freeze on a fresh conda enviroment.
 
 ## Home Grown Dataset Collection
 
