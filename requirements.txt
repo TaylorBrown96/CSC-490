@@ -11,5 +11,4 @@ pyaudio
 pydub
 scipy
 tensorboard
-torch
 transformers
