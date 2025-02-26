@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument(
         "--metrics_dir",
         type=str,
-        default="metrics",
+        default="./metrics/eval",
         help="Directory where metrics and predictions will be saved. (default: metrics)"
     )
     return parser.parse_args()
