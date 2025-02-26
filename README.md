@@ -9,14 +9,7 @@ The audio processing component of this project focuses on transcribing and analy
 By fusing audio and visual data, this system improves automated medical logging in high-stress environments such as battlefield scenarios.
 
 
-
-## Home Grown Dataset Collection
-
-### Download the Provided Code
-
-Place the `Dataset_Audio_Collection.py` file into an empty folder on your desktop.
-
-### Install Dependencies
+## Install Dependencies
 
 Before running the script, install the required dependencies by executing the following command:
 
@@ -25,6 +18,16 @@ pip install -r requirements.txt
 ```
 
 This will ensure that all necessary packages are installed.
+
+You should also visit these sites to get the latest versions:<br>
+[Pytorch](https://pytorch.org/get-started/locally/)<br>
+[CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit)
+
+## Home Grown Dataset Collection
+
+### Download the Provided Code
+
+Place the `Dataset_Audio_Collection.py` file into an empty folder on your desktop.
 
 ### Run the Script
 _If the needed packages are required, they will install automatically._
@@ -42,7 +45,7 @@ _If the needed packages are required, they will install automatically._
 - Recorded audio is saved in the `audio` folder as `YourName_Sentence_X.wav`.
 - The matching transcript is saved in the `transcripts` folder as `YourName_Sentence_X.txt`.
   
->[!NOTE]
+
 >### Extracting The _Archive
 >If you would like to use our repos dataset rather than gather your own, navigate to the `_Archive` folder and run the `assembleDataset.py` script and then move the `audio` and `transcripts` folders to the top level directory.
 
