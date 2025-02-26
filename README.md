@@ -23,6 +23,9 @@ You should also visit these sites to get the latest versions:<br>
 [Pytorch](https://pytorch.org/get-started/locally/)<br>
 [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit)
 
+> [!TIP]
+> Start a new conda or venv enviroment before installing the required packages. Then install torch first by visiting the website and finally run the pip command above.
+
 ## Home Grown Dataset Collection
 
 ### Download the Provided Code
@@ -45,7 +48,7 @@ _If the needed packages are required, they will install automatically._
 - Recorded audio is saved in the `audio` folder as `YourName_Sentence_X.wav`.
 - The matching transcript is saved in the `transcripts` folder as `YourName_Sentence_X.txt`.
   
-
+> [!IMPORTANT]  
 >### Extracting The _Archive
 >If you would like to use our repos dataset rather than gather your own, navigate to the `_Archive` folder and run the `assembleDataset.py` script and then move the `audio` and `transcripts` folders to the top level directory.
 
