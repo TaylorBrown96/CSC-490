@@ -1,4 +1,14 @@
 # CSC-490 | Real-Time Medical Documentation​
+The audio processing component of this project focuses on transcribing and analyzing spoken medical reports to enhance real-time procedure documentation. It utilizes natural language processing (NLP) to extract structured information from medic reports, ensuring accurate, time-stamped records of interventions.
+
+#### Key features include:
+- **Speech Recognition (SR):** Converts spoken words into text while handling background noise and specialized terminology.
+- **Word Error Rate (WER) Analysis:** Evaluates transcription accuracy by comparing predictions to ground-truth data.
+- **Integration with Video Processing:** Aligns audio transcripts with detected medical actions for multimodal documentation.
+
+By fusing audio and visual data, this system improves automated medical logging in high-stress environments such as battlefield scenarios.
+
+
 
 ## Home Grown Dataset Collection
 
