@@ -1,0 +1,15 @@
+accelerate
+audioop-lts
+datasets
+evaluate
+importlib-metadata
+jiwer
+librosa
+matplotlib
+numpy
+pyaudio
+pydub
+scipy
+tensorboard
+torch
+transformers
