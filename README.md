@@ -25,7 +25,9 @@ _If the needed packages are required they will install_
 
 ---
 ### TODO
+- Write install steps along with packages
 - Write instructions for csv creation tool, train and eval scrips
+- Write instructions for the metrics scripts
 - Validate the train and eval scripts work as intended
 - Clean up the code after validation
 
