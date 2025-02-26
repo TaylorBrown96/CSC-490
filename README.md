@@ -28,3 +28,10 @@ _If the needed packages are required they will install_
 - Write instructions for csv creation tool, train and eval scrips
 - Validate the train and eval scripts work as intended
 - Clean up the code after validation
+
+
+---
+### Commands
+`python export_metrics.py --logdir whisper-small-finetuned/logs --output_dir metrics`<br>
+`python eval.py --model_dir ./whisper-small-finetuned --val_csv val.csv --num_samples -1 --metrics_dir eval_metrics`<br>
+`python eval_export_metrics.py --predictions_csv ./eval_metrics\/predictions.csv --output_dir ./eval_metrics/graphs`
