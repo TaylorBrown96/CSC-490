@@ -105,7 +105,7 @@ This will train the model using the dataset specified in `train.csv` and `test.c
 To evaluate the trained model, execute:
 
 ```bash
-python eval.py --model_dir ./whisper-small-finetuned --metrics_dir ./metrics/eval
+python eval.py 
 ```
 
 This script will compute the evaluation metrics and save the results in `eval_metrics`.
@@ -114,7 +114,7 @@ This script will compute the evaluation metrics and save the results in `eval_me
 - `--model_dir` (Default = `"./whisper-small-finetuned"`) – Path to the directory containing the fine-tuned model.
 - `--val_csv` (Default = `"val.csv"`) – Path to the validation CSV file.
 - `--num_samples` (Default = `-1`) – Number of samples to evaluate from `val.csv` (`-1` evaluates all samples).
-- `--metrics_dir` (Default = `"metrics"`) – Directory where metrics and predictions will be saved.
+- `--metrics_dir` (Default = `"./metrics/eval"`) – Directory where metrics and predictions will be saved.
 
 
 ## Metrics Scripts
