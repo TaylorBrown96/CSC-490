@@ -128,7 +128,7 @@ python train_export_metrics.py --logdir whisper-small-finetuned/logs --output_di
 To generate graph for evaluation results:
 
 ```bash
-python eval_export_metrics.py --predictions_csv ./metrics/predictions.csv --output_dir ./metrics/eval/graphs
+python eval_export_metrics.py --predictions_csv ./metrics/eval/predictions.csv --output_dir ./metrics/eval/graphs
 ```
 ---
 ### train_export_metrics.py  
