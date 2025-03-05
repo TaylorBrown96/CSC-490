@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument(
         "--model_dir",
         type=str,
-        default="./whisper-small-finetuned",
+        default="./whisper-small-en-finetuned",
         help="Path to the directory containing the fine-tuned model. (default: ./whisper-small-finetuned)"
     )
     parser.add_argument(
