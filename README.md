@@ -89,14 +89,14 @@ This will train the model using the dataset specified in `train.csv` and `test.c
 #### Editable Parameters
 - `--train_csv` (Default = `"train.csv"`) – Path to the training dataset.
 - `--eval_csv` (Default = `"test.csv"`) – Path to the evaluation dataset.
-- `--output_dir` (Default = `"./whisper-small-en-finetuned"`) – Directory to save the fine-tuned model.
-- `--num_train_epochs` (Default = `5`) – Number of training epochs.
+- `--output_dir` (Default = `"./whisper-small-finetuned"`) – Directory to save the fine-tuned model.
+- `--num_train_epochs` (Default = `10`) – Number of training epochs.
 - `--train_batch_size` (Default = `4`) – Training batch size per device.
 - `--eval_batch_size` (Default = `4`) – Evaluation batch size per device.
 - `--learning_rate` (Default = `1e-5`) – Learning rate.
 - `--save_steps` (Default = `100`) – Save checkpoint every X steps.
 - `--eval_steps` (Default = `100`) – Run evaluation every X steps.
-- `--logging_steps` (Default = `10`) – Log every X steps.
+- `--logging_steps` (Default = `50`) – Log every X steps.
 - `--gradient_accumulation_steps` (Default = `1`) – Number of gradient accumulation steps.
 - `--max_audio_length` (Default = `30` seconds) – Maximum audio length for truncation.
 
@@ -111,7 +111,7 @@ python eval.py
 This script will compute the evaluation metrics and save the results in `eval_metrics`.
 
 #### Editable Parameters
-- `--model_dir` (Default = `"./whisper-small-en-finetuned"`) – Path to the directory containing the fine-tuned model.
+- `--model_dir` (Default = `"./whisper-small-finetuned"`) – Path to the directory containing the fine-tuned model.
 - `--val_csv` (Default = `"val.csv"`) – Path to the validation CSV file.
 - `--num_samples` (Default = `-1`) – Number of samples to evaluate from `val.csv` (`-1` evaluates all samples).
 - `--metrics_dir` (Default = `"./metrics/eval"`) – Directory where metrics and predictions will be saved.
@@ -122,13 +122,13 @@ This script will compute the evaluation metrics and save the results in `eval_me
 To generate training metrics:
 
 ```bash
-python train_export_metrics.py --logdir whisper-small-en-finetuned/logs --output_dir ./metrics/train/graphs/
+python train_export_metrics.py --logdir whisper-small-finetuned/logs --output_dir ./metrics/train/graphs/
 ```
 
 To generate graph for evaluation results:
 
 ```bash
-python eval_export_metrics.py --predictions_csv ./metrics/eval/predictions.csv --output_dir ./metrics/eval/graphs
+python eval_export_metrics.py --predictions_csv ./metrics/predictions.csv --output_dir ./metrics/eval/graphs
 ```
 ---
 ### train_export_metrics.py  
@@ -160,3 +160,12 @@ python eval_export_metrics.py --predictions_csv ./metrics/eval/predictions.csv -
 - A **bar chart** showing WER for each sample.  
 - A **dashed red line** indicating the **average WER** across all samples.  
 - A summary of the overall **average WER** printed in the console.  
+
+
+## GUI Usage
+Once you have trained a model on your dataset you can then launch the `GUIentry.py` and wait for the program to load. After seeing the program window you can click on the `Start Demo` button and whenever you say something the program will have the pre-trained model run an inference on the passed audio.
+
+Program Outputs:
+- A text file is generated upon start up with this format `YYYYMMDD_HHMMSS_Transcript.txt` 
+- After the model transcribes the audio it will write the result to the file.
+- After the model transcribes the audio it will update the GUI with the prediction.

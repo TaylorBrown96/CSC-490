@@ -9,6 +9,9 @@ import time
 import re
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 import numpy as np
 import sounddevice as sd
@@ -17,6 +20,7 @@ from transformers import pipeline
 
 # pydub for volume-based gating
 from pydub import AudioSegment
+import os
 
 class App:
     def __init__(self, root):
@@ -69,24 +73,44 @@ class App:
         # 2) SETUP AUDIO + TRANSCRIPTION
         # -----------------------------
         self.SAMPLE_RATE = 16000
-        # 1-second chunks so we transcribe frequently
-        self.CHUNK_DURATION = 1.0
         self.CHANNELS = 1
 
-        # Volume threshold in dBFS.
-        # A typical quiet room might be around -60 dBFS.
-        # Speaking voice might be -20 to -15 dBFS (or higher).
-        self.VOLUME_THRESHOLD_DBFS = -25.0
+        # Parameters for speech segmentation
+        self.AUDIO_CHUNK_DURATION = 0.5  # seconds per small chunk
+        self.SILENCE_DURATION_THRESHOLD = 1.0  # seconds of silence to mark end of utterance
+        self.MAX_UTTERANCE_DURATION = 10.0  # maximum seconds to accumulate before forcing transcription
+
+        # Adaptive threshold parameters:
+        self.default_threshold = -35.0    # lower bound for effective threshold
+        self.ambient_noise_level = -60.0  # initial estimate of ambient noise (in dBFS)
+        self.adaptive_margin = 5.0        # margin above ambient noise level
+        self.ambient_alpha = 0.1          # smoothing factor for ambient noise update
 
         # Queues for audio + transcriptions
         self.audio_queue = queue.Queue()
         self.transcription_queue = queue.Queue()
+
+        # File for logging transcript (YYYYMMDD_Transcript.txt)
+        self.transcript_filename = time.strftime("%Y%m%d_%H%M%S_Transcript.txt")
+        if not os.path.exists(self.transcript_filename):
+            with open(self.transcript_filename, "w", encoding="utf-8") as f:
+                f.write(f"Live Transcription for {time.strftime('%Y-%m-%d', time.localtime())}\n")
+                f.write("-" * 50 + "\n")
 
         # Flags & threads
         self.stop_event = threading.Event()
         self.record_thread = None
         self.process_thread = None
         self.transcription_running = False  # Toggle flag
+
+        # Load ASR pipeline once
+        fine_tuned_path = "./whisper-small-en-finetuned"  # Adjust if needed
+        device = 0 if torch.cuda.is_available() else -1
+        self.asr = pipeline(
+            "automatic-speech-recognition",
+            model=fine_tuned_path,
+            device=device
+        )
 
         # On app close, release resources
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -105,8 +129,6 @@ class App:
         x = (screen_width // 2) - (width // 2)
         y = (screen_height // 2) - (height // 2)
         self.root.geometry(f"+{x}+{y}")
-
-        # Prevent resizing
         self.root.resizable(False, False)
 
     # -----------------------------
@@ -121,8 +143,6 @@ class App:
             imgtk = ImageTk.PhotoImage(image=img)
             self.video_label.imgtk = imgtk
             self.video_label.config(image=imgtk)
-
-        # Schedule next update in 10 ms
         self.root.after(10, self.update_video)
 
     # -----------------------------
@@ -131,7 +151,7 @@ class App:
     def add_text_to_text_area1(self, text):
         self.text_area1.config(state='normal')
         self.text_area1.insert(tk.END, text + "\n")
-        self.text_area1.see(tk.END)  # auto-scroll to bottom
+        self.text_area1.see(tk.END)
         self.text_area1.config(state='disabled')
 
     def add_text_to_text_area2(self, text):
@@ -156,92 +176,89 @@ class App:
 
     def process_audio(self):
         """
-        Pull frames from audio_queue, combine into 1-second chunks,
-        check volume via pydub, then transcribe if chunk is above threshold.
+        Pull small audio chunks from the audio_queue, accumulate speech segments
+        based on an adaptive threshold, and once silence or a max utterance duration
+        is detected, send the segment to the ASR model for transcription.
         """
-        fine_tuned_path = "./whisper-small-en-finetuned"  # Adjust if needed
-        device = 0 if torch.cuda.is_available() else -1
+        frames_per_chunk = int(self.SAMPLE_RATE * self.AUDIO_CHUNK_DURATION)
+        max_frames = int(self.SAMPLE_RATE * self.MAX_UTTERANCE_DURATION)
 
-        # Minimal pipeline
-        asr = pipeline(
-            "automatic-speech-recognition",
-            model=fine_tuned_path,
-            device=device
-        )
-
-        frames_per_chunk = int(self.SAMPLE_RATE * self.CHUNK_DURATION)
-
-        # Write a header to the text file (optional)
-        with open("LiveTranscription.txt", "a", encoding="utf-8") as f:
-            f.write(f"\nLive Transcription for {time.strftime('%Y-%m-%d', time.localtime())}\n")
-            f.write("-" * 50 + "\n")
+        current_segment = []  # holds numpy arrays for current speech
+        silence_duration = 0.0  # accumulated silence duration
 
         while not self.stop_event.is_set():
             frames = []
             frames_collected = 0
 
-            # Collect frames until we have a full chunk (1 second)
             while frames_collected < frames_per_chunk and not self.stop_event.is_set():
-                data = self.audio_queue.get()
-                frames.append(data)
-                frames_collected += data.shape[0]
+                try:
+                    data = self.audio_queue.get(timeout=0.1)
+                    frames.append(data)
+                    frames_collected += data.shape[0]
+                except queue.Empty:
+                    continue
 
             if self.stop_event.is_set():
                 break
 
-            # Combine into one chunk
             audio_chunk = np.concatenate(frames, axis=0).flatten()
+            segment_pd = self.float32_to_pydub(audio_chunk, self.SAMPLE_RATE)
+            dbfs_val = segment_pd.dBFS
 
-            # Convert float32 array -> pydub AudioSegment for dBFS check
-            segment = self.float32_to_pydub(audio_chunk, self.SAMPLE_RATE)
-            dbfs_val = segment.dBFS
+            # Compute effective threshold: do not drop below the default.
+            effective_threshold = max(self.default_threshold, self.ambient_noise_level + self.adaptive_margin)
+            
+            dbfs_val = dbfs_val.__round__(2)
+            effective_threshold = effective_threshold.__round__(2)
+            print("Microphone dBFS: {:<7} | Activation threshold: {:<7}".format(dbfs_val, effective_threshold))
 
-            # Debug print
-            print(f"[DEBUG] dBFS: {dbfs_val:.2f}  (threshold={self.VOLUME_THRESHOLD_DBFS})")
-
-            if dbfs_val > self.VOLUME_THRESHOLD_DBFS:
-                # It's loud enough to assume speech
-                chunk_time_str = time.strftime("%H:%M:%S", time.localtime())
-                try:
-                    result = asr(audio_chunk)
-                except Exception as e:
-                    print(f"Error during transcription: {e}")
-                    continue
-
-                raw_text = result.get("text", "")
-                cleaned_text = self.sanitize_english_text(raw_text).strip()
-
-                if cleaned_text:
-                    transcript_line = f"[{chunk_time_str}] {cleaned_text}"
-                    print("Transcript:", transcript_line)  # Debug
-
-                    # Write to file
-                    with open("LiveTranscription.txt", "a", encoding="utf-8") as f:
-                        f.write(transcript_line + "\n")
-
-                    # Send to GUI queue
-                    self.transcription_queue.put(transcript_line)
-                else:
-                    print("Transcript: (empty after cleaning)")
+            if dbfs_val > effective_threshold:
+                # Chunk is considered speech.
+                current_segment.append(audio_chunk)
+                silence_duration = 0.0
             else:
-                # If chunk is too quiet, skip
-                print("Transcript: (skipped due to low volume)")
+                # Update ambient noise estimate when no speech is detected.
+                self.ambient_noise_level = (self.ambient_alpha * dbfs_val) + ((1 - self.ambient_alpha) * self.ambient_noise_level)
+                silence_duration += self.AUDIO_CHUNK_DURATION
+
+            # Process accumulated speech if silence or maximum length is reached.
+            if current_segment:
+                total_frames = sum(len(chunk) for chunk in current_segment)
+                if silence_duration >= self.SILENCE_DURATION_THRESHOLD or total_frames >= max_frames:
+                    utterance_audio = np.concatenate(current_segment)
+                    # Calculate duration in seconds.
+                    duration = len(utterance_audio) / self.SAMPLE_RATE
+                    chunk_time_str = time.strftime("%H:%M:%S", time.localtime())
+                    try:
+                        result = self.asr(utterance_audio)
+                    except Exception as e:
+                        print(f"Error during transcription: {e}")
+                        current_segment = []
+                        silence_duration = 0.0
+                        continue
+
+                    raw_text = result.get("text", "")
+                    cleaned_text = self.sanitize_english_text(raw_text).strip()
+
+                    if cleaned_text:
+                        # Append duration to the transcript line.
+                        transcript_line = f"[{chunk_time_str}   ~{duration:.2f}s] {cleaned_text}"
+                        print("Transcript:", transcript_line)
+                        with open(self.transcript_filename, "a", encoding="utf-8") as f:
+                            f.write(transcript_line + "\n")
+                        self.transcription_queue.put(transcript_line)
+                    else:
+                        print("Transcript: (empty after cleaning)")
+
+                    current_segment = []
+                    silence_duration = 0.0
 
     # -----------------------------
     # 6) HELPER: float32 -> pydub AudioSegment
     # -----------------------------
     def float32_to_pydub(self, float_array, sample_rate=16000):
-        """
-        Convert a float32 numpy array (range -1.0..1.0) to a pydub AudioSegment.
-        This lets us measure dBFS easily (for gating).
-        """
-        # Ensure float in [-1.0..1.0]
         float_array = np.clip(float_array, -1.0, 1.0)
-
-        # Scale to int16
         int16_array = (float_array * 32767).astype(np.int16)
-
-        # Create pydub AudioSegment from raw PCM data
         segment = AudioSegment(
             data=int16_array.tobytes(),
             sample_width=2,  # 16 bits = 2 bytes
@@ -257,7 +274,6 @@ class App:
         while not self.transcription_queue.empty():
             line = self.transcription_queue.get()
             self.add_text_to_text_area1(line)
-
         if self.transcription_running and not self.stop_event.is_set():
             self.root.after(200, self.poll_transcriptions)
 
@@ -266,6 +282,11 @@ class App:
     # -----------------------------
     def toggle_transcription(self):
         if not self.transcription_running:
+            with self.audio_queue.mutex:
+                self.audio_queue.queue.clear()
+            with self.transcription_queue.mutex:
+                self.transcription_queue.queue.clear()
+            self.stop_event.clear()
             self.transcription_running = True
             self.start_transcription()
             self.start_button.config(text="Stop Demo")
@@ -275,31 +296,28 @@ class App:
             self.transcription_running = False
 
     def start_transcription(self):
-        """Spawn the background threads for audio recording + processing."""
-        # Clear the text area for a fresh start
         self.text_area1.config(state='normal')
         self.text_area1.delete("1.0", tk.END)
         self.text_area1.config(state='disabled')
 
-        self.stop_event.clear()
-
         self.record_thread = threading.Thread(target=self.record_audio, daemon=True)
         self.process_thread = threading.Thread(target=self.process_audio, daemon=True)
-
         self.record_thread.start()
         self.process_thread.start()
-
         self.poll_transcriptions()
 
     def stop_transcription(self):
-        """Signal threads to stop and wait briefly for them to exit."""
         self.stop_event.set()
-        time.sleep(1.0)
+        with self.audio_queue.mutex:
+            self.audio_queue.queue.clear()
+        if self.record_thread is not None:
+            self.record_thread.join(timeout=2)
+        if self.process_thread is not None:
+            self.process_thread.join(timeout=2)
 
     def on_closing(self):
         if self.transcription_running:
             self.stop_transcription()
-
         self.cap.release()
         self.root.destroy()
 
@@ -308,7 +326,6 @@ class App:
     # -----------------------------
     def sanitize_english_text(self, text):
         return re.sub(r"[^A-Za-z0-9\s,.!?'\"]", "", text)
-
 
 if __name__ == "__main__":
     root = tk.Tk()
