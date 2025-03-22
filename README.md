@@ -122,7 +122,7 @@ This script will compute the evaluation metrics and save the results in `eval_me
 To generate training metrics:
 
 ```bash
-python train_export_metrics.py --logdir whisper-small-finetuned/logs --output_dir ./metrics/train/graphs/
+python train_export_metrics.py --logdir whisper-small-en-finetuned/logs --output_dir ./metrics/train/graphs/
 ```
 
 To generate graph for evaluation results:
